@@ -27,3 +27,6 @@ class Window:
 
     def draw_line(self, line, fill_color):
         line.draw(self.__canvas, fill_color)
+
+    def fill_region(self, point0, point1, fill_color):
+        self.__canvas.create_rectangle(point0.x, point0.y, point1.x, point1.y, fill=fill_color, stipple="gray50", outline=fill_color, outlinestipple="gray50")

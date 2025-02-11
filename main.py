@@ -13,12 +13,12 @@ from util import recursionlimit
 def main():
     with recursionlimit(5000):
 
-        win = Window("Maze Solver",800,600)
-        maze = Maze(5,5,59,79,10,10,win)
+        win = Window("Maze Solver",1600,1200)
+        maze = Maze(5,5,59,79,20,20,win,7746924695169332207)
         # maze.break_entrance_and_exit()
         
 
-        maze.print_statistics(maze.solve())
+        maze.print_statistics(maze.solve(),True)
 
         win.wait_for_close()
 

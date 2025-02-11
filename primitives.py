@@ -44,6 +44,10 @@ class Cell:
         self.__window.draw_line(Line(Point(self.__x0,self.__y0 + offset),Point(self.__x0,self.__y1 - offset)), color if self.has_left_wall else self.__window.bg_color)
         self._first_draw = False
 
+    def fill_with_color(self, color):
+        offset = (self.__x1 - self.__x0) // 4
+        self.__window.fill_region(Point(self.__x0+offset, self.__y0+offset),Point(self.__x1-offset, self.__y1-offset), color)
+
     def draw_move(self, to_cell, undo=False):
         color = "red"
         if undo:

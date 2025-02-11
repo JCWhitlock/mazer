@@ -136,7 +136,7 @@ class Maze:
     def solve(self):
         return self._solve_r(0,0)
 
-    def print_statistics(self, was_solved):
+    def print_statistics(self, was_solved, mark_branches=False):
         print(f"Maze Was Solved = {was_solved}")
         visited_cells = 0
         bad_cells = 0
@@ -156,8 +156,12 @@ class Maze:
                     good_path_length += 1
                     if col == 0 and row == 0 and walls < 2:
                         good_path_branches += 1
+                        if mark_branches:
+                            cell.fill_with_color("green")
                     elif (col != self.cols - 1 or row != self.rows - 1) and walls < 2:
                         good_path_branches += 1
+                        if mark_branches:
+                            cell.fill_with_color("green")
                      
         
         mp_ratio = good_path_length / total_cells
@@ -220,20 +224,24 @@ class Maze:
         if i > 0 and curr_cell.has_left_wall == False and self._cell_ref(self._left_coords(i,j)).visited == False:
             moves.append(self._left_coords(i,j))
         
-        if len(moves) > 1:
-            self._solve_multiplechoice += 1
+        # if len(moves) > 1:
+        #    self._solve_multiplechoice += 1
         
         for move in moves:
             curr_cell.draw_move(self._cell_ref(move))
             result = self._solve_r(move[0],move[1])
             if result:
                 self._cell_ref(move).false_path = False
+                if self._cell_ref(move).get_wall_count() < 2:
+                    self._solve_multiplechoice += 1
+                # curr_cell.draw_move(self._cell_ref(move))
                 return True
+            
             else:
                 curr_cell.draw_move(self._cell_ref(move), True)
         
-        if len(moves) > 1:
-            self._solve_multiplechoice -= 1
+        # if len(moves) > 1:
+        #    self._solve_multiplechoice -= 1
 
         return False
 
