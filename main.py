@@ -14,7 +14,7 @@ def main():
     with recursionlimit(5000):
 
         win = Window("Maze Solver",1600,1200)
-        maze = Maze(5,5,59,79,20,20,win,7746924695169332207)
+        maze = Maze(5,5,59,79,20,20,win,None,True)
         # maze.break_entrance_and_exit()
         
 
