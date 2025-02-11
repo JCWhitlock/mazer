@@ -3,6 +3,11 @@ from primitives import Point,Line,Cell
 from maze import Maze
 from util import recursionlimit
 
+#  7746924695169332207   32.887
+#  9015897716523660400   23.213
+#  6988938901544645069   26.924
+#  851631408580752459    24.285
+#
 
 
 def main():

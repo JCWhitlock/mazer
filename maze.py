@@ -1,3 +1,4 @@
+import sys
 import time
 import random
 from primitives import Cell,Point
@@ -23,8 +24,12 @@ class Maze:
         self.cell_height = cell_size_y
         self._win = win
         self._cells = []
+        self.maze_seed = seed
         if seed is not None:
             random.seed(seed)
+        else:
+            self.maze_seed = random.randint(0, sys.maxsize)
+            random.seed(self.maze_seed)
         self._create_cells()
         self._break_entrance_and_exit()
         self._break_walls_r(0,0)
@@ -45,6 +50,9 @@ class Maze:
         for col in range(len(self._cells)):
             for row in range(len(self._cells[col])):
                 self._draw_cell(col,row,0)
+        self._gen_touchedcount = 0
+        self._gen_endtouched = False
+        self._solve_multiplechoice = 0
     
     def _draw_cell(self, col, row, timing=0.01):
         cell = self._cells[col][row]
@@ -79,8 +87,12 @@ class Maze:
         return self._cells[coords[0]][coords[1]]
 
     def _break_walls_r(self, i, j):
-        print(f"calling break walls {i},{j}")
+        # print(f"calling break walls {i},{j}")
         self._cells[i][j].visited = True
+        if i == self.cols - 1 and j == self.rows - 1:
+            self._gen_endtouched = True
+        elif self._gen_endtouched != True:
+            self._gen_touchedcount += 1
         while True:
             moves = []
             # test left
@@ -97,13 +109,13 @@ class Maze:
                 moves.append(self._down_coords(i,j))   
 
             if len(moves) == 0:
-                self._draw_cell(i,j)
+                self._draw_cell(i,j, 0.0025)
                 return
 
             selection = random.randrange(len(moves))
             next_coord = moves[selection]
 
-            print(f"breaking {next_coord}")
+            # print(f"breaking {next_coord}")
 
             match next_coord[2]:
                 case "up":
@@ -129,24 +141,57 @@ class Maze:
         visited_cells = 0
         bad_cells = 0
         good_path_length = 0
+        good_path_branches = 0
         total_cells = self.rows * self.cols
         for col in range(len(self._cells)):
             for row in range(len(self._cells[col])):
                 cell = self._cells[col][row]
+                walls = cell.get_wall_count()
+
                 if cell.visited:
                     visited_cells += 1
                 if cell.false_path:
                     bad_cells += 1
                 else:
                     good_path_length += 1
+                    if col == 0 and row == 0 and walls < 2:
+                        good_path_branches += 1
+                    elif (col != self.cols - 1 or row != self.rows - 1) and walls < 2:
+                        good_path_branches += 1
+                     
         
+        mp_ratio = good_path_length / total_cells
+        conf_rating = (visited_cells - good_path_length) / good_path_length
+
+        print(f"Generated Maze Seed: {self.maze_seed}")
         print(f"Total Cell Count = {total_cells}")
+        print(f"MazeGen Touched Cells before End Cell = {self._gen_touchedcount}")
         print(f"Visited Cell Count = {visited_cells}")
         print(f"Correct Path Length = {good_path_length}")
         print(f"Wrong Cells Visited = {visited_cells - good_path_length}")
 
+        print(f"Multiple Choice Branches in Solution = {self._solve_multiplechoice} // {good_path_branches}")
+
+        print(f"Main Path Ratio = {mp_ratio}")
+        print(f"Confusion Rating = {conf_rating}")
+
+        score = ((total_cells // 1000) + (self._solve_multiplechoice // 2)) * conf_rating
+        print(f"Difficulty Score = {score}")
+        if score < 3:
+            print("VERY EASY")
+        elif score < 7:
+            print("EASY")
+        elif score < 16:
+            print("MEDIUM")
+        elif score < 25:
+            print("HARD")
+        else:
+            print("VERY HARD")
+
+
+
     def _solve_r(self,i,j):
-        self._animate()
+        self._animate(0.005)
         self._cells[i][j].visited = True
         if i == self.cols-1 and j == self.rows-1:
             self._cells[i][j].false_path = False
@@ -154,12 +199,20 @@ class Maze:
         moves = []
         curr_cell = self._cells[i][j]
         
-        # test right
-        if i < self.cols - 1 and curr_cell.has_right_wall == False and self._cell_ref(self._right_coords(i,j)).visited == False:
-            moves.append(self._right_coords(i,j))
-        # test down
-        if j < self.rows - 1 and curr_cell.has_bottom_wall == False and self._cell_ref(self._down_coords(i,j)).visited == False:
-            moves.append(self._down_coords(i,j))
+        if self.cols - i > self.rows - j:
+            # test right
+            if i < self.cols - 1 and curr_cell.has_right_wall == False and self._cell_ref(self._right_coords(i,j)).visited == False:
+                moves.append(self._right_coords(i,j))
+            # test down
+            if j < self.rows - 1 and curr_cell.has_bottom_wall == False and self._cell_ref(self._down_coords(i,j)).visited == False:
+                moves.append(self._down_coords(i,j))
+        else:
+            # test down
+            if j < self.rows - 1 and curr_cell.has_bottom_wall == False and self._cell_ref(self._down_coords(i,j)).visited == False:
+                moves.append(self._down_coords(i,j))
+            # test right
+            if i < self.cols - 1 and curr_cell.has_right_wall == False and self._cell_ref(self._right_coords(i,j)).visited == False:
+                moves.append(self._right_coords(i,j))
         # test up
         if j > 0 and curr_cell.has_top_wall == False and self._cell_ref(self._up_coords(i,j)).visited == False:
             moves.append(self._up_coords(i,j))
@@ -167,6 +220,8 @@ class Maze:
         if i > 0 and curr_cell.has_left_wall == False and self._cell_ref(self._left_coords(i,j)).visited == False:
             moves.append(self._left_coords(i,j))
         
+        if len(moves) > 1:
+            self._solve_multiplechoice += 1
         
         for move in moves:
             curr_cell.draw_move(self._cell_ref(move))
@@ -177,6 +232,9 @@ class Maze:
             else:
                 curr_cell.draw_move(self._cell_ref(move), True)
         
+        if len(moves) > 1:
+            self._solve_multiplechoice -= 1
+
         return False
 
 

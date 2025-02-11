@@ -26,15 +26,23 @@ class Cell:
         self.__window = window
         self.visited = False
         self.false_path = True
+        self._first_draw = True
     
     def get_center_point(self):
         return Point((self.__x0 + self.__x1) // 2, (self.__y0 + self.__y1) // 2)
 
+    def get_wall_count(self):
+        return (1 if self.has_top_wall else 0) + (1 if self.has_bottom_wall else 0) + (1 if self.has_left_wall else 0) + (1 if self.has_right_wall else 0)
+
     def draw(self, color):
-        self.__window.draw_line(Line(Point(self.__x0,self.__y0), Point(self.__x1,self.__y0)), color if self.has_top_wall else self.__window.bg_color)
-        self.__window.draw_line(Line(Point(self.__x1,self.__y0),Point(self.__x1,self.__y1)), color if self.has_right_wall else self.__window.bg_color)
-        self.__window.draw_line(Line(Point(self.__x0,self.__y1),Point(self.__x1,self.__y1)), color if self.has_bottom_wall else self.__window.bg_color)
-        self.__window.draw_line(Line(Point(self.__x0,self.__y0),Point(self.__x0,self.__y1)), color if self.has_left_wall else self.__window.bg_color)
+        offset = 0
+        if not self._first_draw:
+            offset = 1
+        self.__window.draw_line(Line(Point(self.__x0 + offset,self.__y0), Point(self.__x1 - offset,self.__y0)), color if self.has_top_wall else self.__window.bg_color)
+        self.__window.draw_line(Line(Point(self.__x1,self.__y0 + offset),Point(self.__x1,self.__y1 - offset)), color if self.has_right_wall else self.__window.bg_color)
+        self.__window.draw_line(Line(Point(self.__x0 + offset,self.__y1),Point(self.__x1 - offset,self.__y1)), color if self.has_bottom_wall else self.__window.bg_color)
+        self.__window.draw_line(Line(Point(self.__x0,self.__y0 + offset),Point(self.__x0,self.__y1 - offset)), color if self.has_left_wall else self.__window.bg_color)
+        self._first_draw = False
 
     def draw_move(self, to_cell, undo=False):
         color = "red"
