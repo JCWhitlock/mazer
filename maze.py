@@ -1,0 +1,183 @@
+import time
+import random
+from primitives import Cell,Point
+from window import Window
+
+class Maze:
+    def __init__(
+        self,
+        x1,
+        y1,
+        num_rows,
+        num_cols,
+        cell_size_x,
+        cell_size_y,
+        win,
+        seed=None
+    ):
+        self.x = x1
+        self.y = y1
+        self.rows = num_rows
+        self.cols = num_cols
+        self.cell_width = cell_size_x
+        self.cell_height = cell_size_y
+        self._win = win
+        self._cells = []
+        if seed is not None:
+            random.seed(seed)
+        self._create_cells()
+        self._break_entrance_and_exit()
+        self._break_walls_r(0,0)
+        self._reset_cells_visited()
+
+    def _reset_cells_visited(self):
+        for col in range(len(self._cells)):
+            for row in range(len(self._cells[col])):
+                self._cells[col][row].visited = False
+    
+    def _create_cells(self):
+        for col in range(0,self.cols):
+            self._cells.append([])
+            for row in range(0,self.rows):
+                cell_origin_x = self.x + (col * self.cell_width)
+                cell_origin_y = self.y + (row * self.cell_height)
+                self._cells[col].append(Cell(Point(cell_origin_x, cell_origin_y), Point(cell_origin_x + self.cell_width, cell_origin_y + self.cell_height), self._win))
+        for col in range(len(self._cells)):
+            for row in range(len(self._cells[col])):
+                self._draw_cell(col,row,0)
+    
+    def _draw_cell(self, col, row, timing=0.01):
+        cell = self._cells[col][row]
+        cell.draw("black")
+        self._animate(timing)
+    
+    def _animate(self, timing=0.01):
+        self._win.redraw()
+        time.sleep(timing)
+
+    def _break_entrance_and_exit(self):
+        cols = len(self._cells)
+        rows = len(self._cells[0])
+        self._cells[0][0].has_top_wall = False
+        self._cells[-1][-1].has_bottom_wall = False
+        self._draw_cell(0,0)
+        self._draw_cell(cols-1,rows-1)
+    
+    def _up_coords(self, i, j):
+        return (i, j-1, "up")
+    
+    def _down_coords(self, i, j):
+        return (i, j+1, "down")
+
+    def _left_coords(self,i,j):
+        return (i-1, j, "left")
+
+    def _right_coords(self,i,j):
+        return (i+1, j, "right")
+
+    def _cell_ref(self, coords):
+        return self._cells[coords[0]][coords[1]]
+
+    def _break_walls_r(self, i, j):
+        print(f"calling break walls {i},{j}")
+        self._cells[i][j].visited = True
+        while True:
+            moves = []
+            # test left
+            if i > 0 and self._cell_ref(self._left_coords(i,j)).visited == False:
+                moves.append(self._left_coords(i,j))
+            # test right
+            if i < self.cols - 1 and self._cell_ref(self._right_coords(i,j)).visited == False:
+                moves.append(self._right_coords(i,j))
+            # test up
+            if j > 0 and self._cell_ref(self._up_coords(i,j)).visited == False:
+                moves.append(self._up_coords(i,j))
+            # test down
+            if j < self.rows - 1 and self._cell_ref(self._down_coords(i,j)).visited == False:
+                moves.append(self._down_coords(i,j))   
+
+            if len(moves) == 0:
+                self._draw_cell(i,j)
+                return
+
+            selection = random.randrange(len(moves))
+            next_coord = moves[selection]
+
+            print(f"breaking {next_coord}")
+
+            match next_coord[2]:
+                case "up":
+                    self._cells[i][j].has_top_wall = False
+                    self._cell_ref(next_coord).has_bottom_wall = False
+                case "down":
+                    self._cells[i][j].has_bottom_wall = False
+                    self._cell_ref(next_coord).has_top_wall = False
+                case "left":
+                    self._cells[i][j].has_left_wall = False
+                    self._cell_ref(next_coord).has_right_wall = False
+                case "right":
+                    self._cells[i][j].has_right_wall = False
+                    self._cell_ref(next_coord).has_left_wall = False
+             
+            self._break_walls_r(next_coord[0], next_coord[1])
+            
+    def solve(self):
+        return self._solve_r(0,0)
+
+    def print_statistics(self, was_solved):
+        print(f"Maze Was Solved = {was_solved}")
+        visited_cells = 0
+        bad_cells = 0
+        good_path_length = 0
+        total_cells = self.rows * self.cols
+        for col in range(len(self._cells)):
+            for row in range(len(self._cells[col])):
+                cell = self._cells[col][row]
+                if cell.visited:
+                    visited_cells += 1
+                if cell.false_path:
+                    bad_cells += 1
+                else:
+                    good_path_length += 1
+        
+        print(f"Total Cell Count = {total_cells}")
+        print(f"Visited Cell Count = {visited_cells}")
+        print(f"Correct Path Length = {good_path_length}")
+        print(f"Wrong Cells Visited = {visited_cells - good_path_length}")
+
+    def _solve_r(self,i,j):
+        self._animate()
+        self._cells[i][j].visited = True
+        if i == self.cols-1 and j == self.rows-1:
+            self._cells[i][j].false_path = False
+            return True
+        moves = []
+        curr_cell = self._cells[i][j]
+        
+        # test right
+        if i < self.cols - 1 and curr_cell.has_right_wall == False and self._cell_ref(self._right_coords(i,j)).visited == False:
+            moves.append(self._right_coords(i,j))
+        # test down
+        if j < self.rows - 1 and curr_cell.has_bottom_wall == False and self._cell_ref(self._down_coords(i,j)).visited == False:
+            moves.append(self._down_coords(i,j))
+        # test up
+        if j > 0 and curr_cell.has_top_wall == False and self._cell_ref(self._up_coords(i,j)).visited == False:
+            moves.append(self._up_coords(i,j))
+        # test left
+        if i > 0 and curr_cell.has_left_wall == False and self._cell_ref(self._left_coords(i,j)).visited == False:
+            moves.append(self._left_coords(i,j))
+        
+        
+        for move in moves:
+            curr_cell.draw_move(self._cell_ref(move))
+            result = self._solve_r(move[0],move[1])
+            if result:
+                self._cell_ref(move).false_path = False
+                return True
+            else:
+                curr_cell.draw_move(self._cell_ref(move), True)
+        
+        return False
+
+
+
